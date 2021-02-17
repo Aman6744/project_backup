@@ -1,8 +1,10 @@
 import string
 
 class Tokenizer():
-    def __init__(self, filters, charset=string.printable[:84]):
-        self.filters = filters
+    def __init__(self, filters=None, charset=string.printable[:84]):
+        self.filters = filters if filters else string.printable.translate(
+            str.maketrans("", "", charset)
+            )
         self.charset = None
         self.vocab_size = None
         self.char_index = {}

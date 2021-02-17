@@ -2,12 +2,14 @@ import argparse
 import os
 import datetime
 import string
+from glob import glob
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--transform", action="store_true", default=False)
     parser.add_argument("--train", action="store_true", default=False)    
-    parser.add_argument("-i", "--image", type=str)
+    parser.add_argument("-p", "--predict", action="store_true", default=False)
+    parser.add_argument("-i", "--image", type=str, default=None)
 
     args = parser.parse_args()
 
@@ -18,7 +20,7 @@ if __name__ == "__main__":
     raw_path = os.path.join("..", "data", "raw", "IAM")
     source_path = os.path.join("..", "data", "dataset_hdf5", "iam_words.hdf5")
     output_path = os.path.join("..", "output")
-    target_path = os.path.join(output_path, "checkpoint_weights.hdf5")
+    target_path = os.path.join(output_path, "checkpoint_weights_3rd_day.hdf5")
     os.makedirs(output_path, exist_ok = True)
 
     # define input size, number max of chars per line and list of valid chars
@@ -38,15 +40,25 @@ if __name__ == "__main__":
             ds = Dataset(raw_path)
             ds.save_partitions(source_path, target_image_size, maxTextLength)
 
-    elif args.image:
+    elif args.predict:
+
+        input_image_path = os.path.join(output_path, "prediction")
+        output_image_path = os.path.join(input_image_path, "out")
+        os.makedirs(output_image_path, exist_ok=True)
+
+        if args.image:
+            images = sorted(glob(os.path.join(input_image_path, args.image)))
+        else:
+            images = sorted(glob(os.path.join(input_image_path, "*.png")))
         
         from model import MyModel
         from data.tokenizer import Tokenizer
+        from data import imgproc
 
         import matplotlib.pyplot as plt
         import Preprocess_image as pp 
 
-        tokenizer = Tokenizer(filters = string.printable[95:], charset=charset)
+        tokenizer = Tokenizer()
         # tokenizer.fit_on_texts(charset)
 
         model = MyModel(input_size=target_image_size,
@@ -55,18 +67,36 @@ if __name__ == "__main__":
                         stop_tolerance=15,
                         reduce_tolerance=10)
         model.compile(learning_rate=0.001)
-        model.load_checkpoint(target=target_path, train=False)
+        model.load_checkpoint(target=target_path)
 
-        img = pp.preprocess_image(args.image, target_image_size)
-        img = pp.normalization([img])
+        imgproc.execute(images, output_image_path)
 
-        predicts, probabilities = model.predict(img, ctc_decode=True)
+        for image in images:
+            text = []
+            confidence = []
+            image_name = image.split('/')[-1]
 
-        predicts = tokenizer.sequences_to_texts(predicts)
-        print(f"Predicted Word: {predicts[0]}\nConfidence: {probabilities[0]}")
+            image_words = sorted(glob(os.path.join(output_image_path, image_name, "words", "*.png")))
+
+            for img in image_words:
+                img = pp.preprocess_image(img, target_image_size)
+                img = pp.normalization([img])
+
+                predicts, probabilities = model.predict(img, ctc_decode=True)
+
+                predicts = tokenizer.sequences_to_texts(predicts)
+                confidence.append(f"{predicts[0]} ==> {probabilities[0]}")
+                # print(f"Predicted Word: {predicts[0]}\nConfidence: {probabilities[0]}")
+                text.append(predicts[0])
+            
+            with open(os.path.join(output_image_path, image_name, "extracted_text.txt"), 'a') as f:
+                f.write(" ".join(text))
+                f.write("\n\n\n")
+            with open(os.path.join(output_image_path, image_name, "confidence_score.txt"), 'w') as f:
+                f.write("\n".join(confidence))
 
     else:
-
+        exit()
         from data.generator import Datagenerator
         from model import MyModel
 
