@@ -1,7 +1,7 @@
 import string
 
 class Tokenizer():
-    def __init__(self, filters=None, charset=string.printable[:84]):
+    def __init__(self, charset, filters=None):
         self.filters = filters if filters else string.printable.translate(
             str.maketrans("", "", charset)
             )
