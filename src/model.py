@@ -7,8 +7,8 @@ from contextlib import redirect_stdout
 from tensorflow.keras import backend as K
 from tensorflow.keras import Model
 
-from tensorflow.keras.callbacks import CSVLogger, TensorBoard, ModelCheckpoint
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from tensorflow.keras.callbacks import CSVLogger, TensorBoard
+from network.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras.constraints import MaxNorm
 from tensorflow.python.keras import distribute
 

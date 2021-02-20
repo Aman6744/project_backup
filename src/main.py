@@ -2,7 +2,9 @@ import argparse
 import os
 import datetime
 import string
+import json
 from glob import glob
+from config.config import json_file
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -100,6 +102,12 @@ if __name__ == "__main__":
         from data.generator import Datagenerator
         from model import MyModel
 
+        initial_epoch = 0
+        if os.path.isfile(json_file):
+        	with open(json_file, "r") as f:
+        		initial_params = json.load(f)
+        		initial_epoch = initial_params["epoch"]+1
+
         train_dgen = Datagenerator(source_path,
                                    charset=charset, 
                                    partition='train',
@@ -132,7 +140,8 @@ if __name__ == "__main__":
                       validation_data=valid_dgen,
                       callbacks=callbacks,
                       shuffle=False,
-                      verbose=1)
+                      verbose=1, 
+                      initial_epoch=initial_epoch)
 
         total_time = datetime.datetime.now() - start_time
 
